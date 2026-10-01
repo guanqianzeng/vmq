@@ -1,0 +1,450 @@
+<div class="layui-form" action="">
+
+    <div class="layui-form-item">
+        <label class="layui-form-label">后台账号</label>
+        <div class="layui-input-block">
+            <input type="text" id="user" lay-verify="required" placeholder="请输入管理员账号" autocomplete="off" class="layui-input">
+        </div>
+    </div>
+    <div class="layui-form-item">
+        <label class="layui-form-label">后台密码</label>
+        <div class="layui-input-block">
+            <input type="text" id="pass" lay-verify="required" placeholder="请输入管理员密码" autocomplete="off" class="layui-input">
+        </div>
+    </div>
+
+    <div class="layui-form-item">
+        <label class="layui-form-label">订单有效期</label>
+        <div class="layui-input-block">
+            <input type="number" id="close" lay-verify="required" placeholder="请输入创建的订单几分钟后失效" autocomplete="off" class="layui-input">
+        </div>
+    </div>
+
+    <div class="layui-form-item">
+        <label class="layui-form-label">异步回调</label>
+        <div class="layui-input-block">
+            <input type="text" id="notifyUrl" lay-verify="required" placeholder="请输入异步回调地址" autocomplete="off" class="layui-input">
+        </div>
+    </div>
+
+    <div class="layui-form-item">
+        <label class="layui-form-label">同步回调</label>
+        <div class="layui-input-block">
+            <input type="text" id="returnUrl" lay-verify="required" placeholder="请输入支付完成后跳转地址" autocomplete="off" class="layui-input">
+        </div>
+    </div>
+
+    <div class="layui-form-item">
+        <label class="layui-form-label">通讯密钥</label>
+        <div class="layui-input-block">
+            <input type="text" id="key" lay-verify="required" placeholder="请输入通讯密钥" autocomplete="off" class="layui-input">
+        </div>
+    </div>
+
+    <div class="layui-form-item">
+        <label class="layui-form-label">区分方式</label>
+        <div class="layui-input-block">
+            <div class="layui-upload">
+                <select id="payQf">
+                    <option value="1">金额递增</option>
+                    <option value="2">金额递减</option>
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <!-- 无金额多码池管理 -->
+    <div class="layui-form-item">
+        <label class="layui-form-label">换码阈值</label>
+        <div class="layui-input-inline">
+            <input type="number" id="switchThreshold" placeholder="被换几次判不健康" autocomplete="off" class="layui-input" style="width:180px;display:inline-block;">
+        </div>
+        <button class="layui-btn layui-btn-sm" onclick="saveThreshold()" style="margin-left:10px;">保存阈值</button>
+        <span style="margin-left:15px;color:#999;">无金额码被用户切换达到此次数后自动标记为不健康，不再参与轮询</span>
+    </div>
+
+    <div class="layui-form-item">
+        <label class="layui-form-label">微信码池</label>
+        <div class="layui-input-block">
+            <button type="button" class="layui-btn layui-btn-sm" id="wxPoolAdd">添加微信收款码</button>
+            <span style="color:#999;margin-left:10px;">可上传多张无金额微信收款二维码，系统自动轮询使用</span>
+            <table class="layui-table" id="wxPoolTable" style="margin-top:10px;">
+                <thead>
+                    <tr><th>编码</th><th>备注</th><th>兜底</th><th>二维码</th><th>状态</th><th>被换次数</th><th>最后使用</th><th>操作</th></tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+    </div>
+    <div class="layui-form-item">
+        <label class="layui-form-label">支付宝码池</label>
+        <div class="layui-input-block">
+            <button type="button" class="layui-btn layui-btn-sm" id="zfbPoolAdd">添加支付宝收款码</button>
+            <span style="color:#999;margin-left:10px;">可上传多张无金额支付宝收款二维码，系统自动轮询使用</span>
+            <table class="layui-table" id="zfbPoolTable" style="margin-top:10px;">
+                <thead>
+                    <tr><th>编码</th><th>备注</th><th>兜底</th><th>二维码</th><th>状态</th><th>被换次数</th><th>最后使用</th><th>操作</th></tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+    </div>
+
+
+
+    <div class="layui-form-item" style="text-align: right;">
+        <button class="layui-btn" onclick="save()">保存</button>
+    </div>
+
+
+
+    <!--<div class="layui-form-item layui-form-text">-->
+    <!--<label class="layui-form-label">设置进入网站的提示</label>-->
+    <!--<div class="layui-input-block">-->
+    <!--<textarea placeholder="请输入公告内容" id="xz" class="layui-textarea"></textarea>-->
+    <!--</div>-->
+    <!--</div>-->
+    <!--<div class="layui-form-item">-->
+    <!--<button class="layui-btn" onclick="editxz()">保存</button>-->
+    <!--</div>-->
+</div>
+
+<script>
+    function formatDate(now) {
+        now = new Date(now*1000);
+        return now.getFullYear()
+            + "-" + (now.getMonth()>8?(now.getMonth()+1):"0"+(now.getMonth()+1))
+            + "-" + (now.getDate()>9?now.getDate():"0"+now.getDate())
+            + " " + (now.getHours()>9?now.getHours():"0"+now.getHours())
+            + ":" + (now.getMinutes()>9?now.getMinutes():"0"+now.getMinutes())
+            + ":" + (now.getSeconds()>9?now.getSeconds():"0"+now.getSeconds());
+
+    }
+    layui.use(['form','layer','upload'], function(){
+        var table = layui.table,form = layui.form,upload = layui.upload;
+
+        /* ============ 多码池管理 ============ */
+        function renderPoolTable(type, $tbody) {
+            $.post("admin/index/getPoolQrcodes", {type: type}, function(res){
+                if (res.code != 1) { layer.msg(res.msg); return; }
+                var html = '';
+                var list = res.data || [];
+                if (list.length == 0) {
+                    html = '<tr><td colspan="8" style="text-align:center;color:#999;">暂无收款码，请点击上方按钮添加</td></tr>';
+                } else {
+                    for (var i = 0; i < list.length; i++) {
+                        var item = list[i];
+                        var isFallback = item.is_fallback == 1;
+                        var healthyText = item.healthy == 1 ? '<span style="color:green;">健康</span>' : '<span style="color:red;">不健康</span>';
+                        var fallbackText = isFallback ? '<span style="color:#FF9800;font-weight:bold;">兜底</span>' : '<span style="color:#999;">-</span>';
+                        var lastUsed = item.last_used_at > 0 ? formatDate(item.last_used_at) : '从未使用';
+                        var remark = item.remark || '-';
+                        var actions = '<button class="layui-btn layui-btn-xs" onclick="editPoolQrcode(' + item.id + ',' + type + ',\'' + encodeURIComponent(item.pay_url) + '\',\'' + encodeURIComponent(item.remark || '') + '\',' + (isFallback?1:0) + ')">编辑</button> ' +
+                            '<button class="layui-btn layui-btn-xs" onclick="toggleHealthy(' + item.id + ',' + item.healthy + ',' + type + ')">' + (item.healthy == 1 ? '下线' : '恢复') + '</button> ' +
+                            '<button class="layui-btn layui-btn-xs layui-btn-danger" onclick="delPoolQrcode(' + item.id + ',' + type + ')">删除</button>';
+                        html += '<tr>' +
+                            '<td>' + item.code + (isFallback ? ' <span style="color:#FF9800;font-size:12px;">[兜底]</span>' : '') + '</td>' +
+                            '<td>' + remark + '</td>' +
+                            '<td>' + fallbackText + '</td>' +
+                            '<td><img src="enQrcode?url=' + encodeURIComponent(item.pay_url) + '" style="width:60px;height:60px;"></td>' +
+                            '<td>' + healthyText + '</td>' +
+                            '<td>' + item.switch_count + '</td>' +
+                            '<td>' + lastUsed + '</td>' +
+                            '<td>' + actions + '</td>' +
+                        '</tr>';
+                    }
+                }
+                $tbody.html(html);
+            });
+        }
+
+        window.loadWxPool = function() { renderPoolTable(1, $('#wxPoolTable tbody')); };
+        window.loadZfbPool = function() { renderPoolTable(2, $('#zfbPoolTable tbody')); };
+
+        window.toggleHealthy = function(id, current, type) {
+            var target = current == 1 ? 0 : 1;
+            $.post("admin/index/setPoolHealthy", {id: id, healthy: target}, function(res){
+                layer.msg(res.msg);
+                if (res.code == 1) {
+                    if (type == 1) loadWxPool(); else loadZfbPool();
+                }
+            });
+        };
+
+        window.delPoolQrcode = function(id, type) {
+            layer.confirm('确定删除该收款码？', function(){
+                $.post("admin/index/delPoolQrcode", {id: id}, function(res){
+                    layer.msg(res.msg);
+                    if (res.code == 1) {
+                        if (type == 1) loadWxPool(); else loadZfbPool();
+                    }
+                });
+            });
+        };
+
+        window.saveThreshold = function() {
+            var v = $('#switchThreshold').val();
+            if (!v || v < 1) { layer.msg('请输入有效阈值'); return; }
+            $.post("admin/index/saveSwitchThreshold", {value: v}, function(res){
+                layer.msg(res.msg);
+            });
+        };
+
+        function bindPoolUpload(btnId, type) {
+            upload.render({
+                elem: '#' + btnId,
+                url: 'qr-code/test.php',
+                auto: false,
+                choose: function(obj){
+                    obj.preview(function(index, file, result){
+                        qrcode.decode(getObjectURL(file));
+                        qrcode.callback = function(imgMsg) {
+                            if (imgMsg != "") {
+                                addPoolQrcode(type, imgMsg);
+                            } else {
+                                layer.msg('处理中', {icon:16, shade:0.01, time:0});
+                                $.post("qr-code/test.php", "base64=" + encodeURIComponent(result.split(",")[1]), function(data){
+                                    if (!data.data) data = JSON.parse(data);
+                                    if (data.code == 1) {
+                                        addPoolQrcode(type, data.data);
+                                    } else {
+                                        layer.alert('处理失败，可以尝试将二维码用草料识别出内容，然后重新将内容生成二维码图片上传！');
+                                    }
+                                });
+                            }
+                        };
+                    });
+                }
+            });
+        }
+
+        window.editPoolQrcode = function(id, type, encPayUrl, encRemark, isFallback) {
+            var payUrl = decodeURIComponent(encPayUrl || '');
+            var remark = decodeURIComponent(encRemark || '');
+            var fb = isFallback == 1;
+            var title = fb ? '编辑兜底码' : '编辑收款码';
+
+            layer.open({
+                type: 1,
+                title: title,
+                area: ['480px', '420px'],
+                content: '<div style="padding:20px;">' +
+                    '<div class="layui-form-item">' +
+                        '<label style="display:block;margin-bottom:5px;font-weight:bold;">二维码内容</label>' +
+                        '<div style="display:flex;gap:8px;align-items:center;">' +
+                            '<input type="text" id="editPayUrl" class="layui-input" style="flex:1;" value="' + payUrl.replace(/"/g, '&quot;') + '" placeholder="上传自动识别 或 手动粘贴内容">' +
+                            '<input type="file" id="editQrFile" accept="image/*" style="display:none;">' +
+                            '<button type="button" class="layui-btn layui-btn-sm" id="editQrUploadBtn" style="white-space:nowrap;">上传识别</button>' +
+                        '</div>' +
+                    '</div>' +
+                    '<div class="layui-form-item">' +
+                        '<label style="display:block;margin-bottom:5px;font-weight:bold;">备注</label>' +
+                        '<input type="text" id="editRemark" class="layui-input" value="' + remark.replace(/"/g, '&quot;') + '" placeholder="备注说明，如：微信主码、备用码等">' +
+                    '</div>' +
+                    '<div class="layui-form-item">' +
+                        '<label style="display:block;margin-bottom:5px;font-weight:bold;">是否兜底</label>' +
+                        '<div style="padding-top:8px;">' +
+                            '<input type="checkbox" id="editIsFallback" ' + (fb ? 'checked' : '') + '> <span style="margin-left:5px;color:#FF9800;">设为兜底码（同类型其他码自动取消兜底）</span>' +
+                        '</div>' +
+                    '</div>' +
+                '</div>',
+                btn: ['保存', '取消'],
+                success: function() {
+                    // 上传按钮绑定
+                    $('#editQrUploadBtn').on('click', function(){ $('#editQrFile').click(); });
+                    $('#editQrFile').on('change', function() {
+                        var file = this.files[0];
+                        if (!file) return;
+                        var reader = new FileReader();
+                        reader.onload = function(e) {
+                            var b64 = e.target.result.split(',')[1];
+                            // 先尝试本地js解析
+                            try {
+                                qrcode.decode(e.target.result);
+                                qrcode.callback = function(imgMsg) {
+                                    if (imgMsg && imgMsg != 'error decoding QR Code') {
+                                        $('#editPayUrl').val(imgMsg);
+                                        layer.msg('识别成功');
+                                    } else {
+                                        // 本地失败，走服务端识别
+                                        layer.msg('本地识别中...', {icon:16, shade:0.01, time:0});
+                                        $.post('qr-code/test.php', 'base64=' + encodeURIComponent(b64), function(data){
+                                            if (!data.data) data = JSON.parse(data);
+                                            if (data.code == 1) {
+                                                $('#editPayUrl').val(data.data);
+                                                layer.msg('识别成功');
+                                            } else {
+                                                layer.msg(data.data || '识别失败，请手动输入');
+                                            }
+                                        });
+                                    }
+                                };
+                            } catch(err) {
+                                // js解析异常，直接走服务端
+                                $.post('qr-code/test.php', 'base64=' + encodeURIComponent(b64), function(data){
+                                    if (!data.data) data = JSON.parse(data);
+                                    if (data.code == 1) {
+                                        $('#editPayUrl').val(data.data);
+                                        layer.msg('识别成功');
+                                    } else {
+                                        layer.msg(data.data || '识别失败，请手动输入');
+                                    }
+                                });
+                            }
+                        };
+                        reader.readAsDataURL(file);
+                    });
+                },
+                yes: function(index) {
+                    var newUrl = $('#editPayUrl').val().trim();
+                    var newRemark = $('#editRemark').val().trim();
+                    var newFallback = $('#editIsFallback').is(':checked') ? 1 : 0;
+                    if (!newUrl) { layer.msg('二维码内容不能为空'); return; }
+                    $.post("admin/index/editPoolQrcode", {
+                        id: id,
+                        type: type,
+                        pay_url: newUrl,
+                        remark: newRemark,
+                        is_fallback: newFallback
+                    }, function(res){
+                        layer.msg(res.msg);
+                        if (res.code == 1) {
+                            layer.close(index);
+                            if (type == 1) loadWxPool(); else loadZfbPool();
+                        }
+                    });
+                }
+            });
+        };
+
+        function addPoolQrcode(type, payUrl) {
+            layer.open({
+                type: 1,
+                title: '添加收款码',
+                area: ['480px', '340px'],
+                content: '<div style="padding:20px;">' +
+                    '<div class="layui-form-item">' +
+                        '<label style="display:block;margin-bottom:5px;font-weight:bold;">二维码内容</label>' +
+                        '<input type="text" id="addPayUrl" class="layui-input" value="' + payUrl.replace(/"/g, '&quot;') + '" readonly>' +
+                    '</div>' +
+                    '<div class="layui-form-item">' +
+                        '<label style="display:block;margin-bottom:5px;font-weight:bold;">备注</label>' +
+                        '<input type="text" id="addRemark" class="layui-input" placeholder="备注说明，如：微信主码、备用码等">' +
+                    '</div>' +
+                    '<div class="layui-form-item">' +
+                        '<label style="display:block;margin-bottom:5px;font-weight:bold;">是否兜底</label>' +
+                        '<div style="padding-top:8px;">' +
+                            '<input type="checkbox" id="addIsFallback"> <span style="margin-left:5px;color:#FF9800;">设为兜底码（同类型其他码自动取消兜底）</span>' +
+                        '</div>' +
+                    '</div>' +
+                '</div>',
+                btn: ['确定添加', '取消'],
+                yes: function(index) {
+                    var remark = $('#addRemark').val().trim();
+                    var isFallback = $('#addIsFallback').is(':checked') ? 1 : 0;
+                    $.post("admin/index/addPoolQrcode", {
+                        type: type,
+                        pay_url: payUrl,
+                        remark: remark,
+                        is_fallback: isFallback
+                    }, function(res){
+                        if (res.code == 1) {
+                            layer.close(index);
+                            layer.msg('添加成功，编码：' + res.data.code);
+                            if (type == 1) loadWxPool(); else loadZfbPool();
+                        } else {
+                            layer.msg(res.msg);
+                        }
+                    });
+                }
+            });
+        }
+
+        bindPoolUpload('wxPoolAdd', 1);
+        bindPoolUpload('zfbPoolAdd', 2);
+
+        $.post("admin/index/getSwitchThreshold", function(res){
+            if (res.code == 1) $('#switchThreshold').val(res.data.value);
+        });
+        loadWxPool();
+        loadZfbPool();
+
+        form.render();
+
+    });
+
+
+
+    function save() {
+        var user = $("#user").val();
+        var pass = $("#pass").val();
+        var notifyUrl = $("#notifyUrl").val();
+        var returnUrl = $("#returnUrl").val();
+        var key = $("#key").val();
+        var close = $("#close").val();
+        var payQf = $("#payQf").val();
+        if (user == ""){
+            layer.msg("请输入管理员账号");
+            return;
+        }
+        if (pass == ""){
+            layer.msg("请输入管理员密码");
+            return;
+        }
+        if (key == ""){
+            layer.msg("请输入通讯密钥");
+            return;
+        }
+        if (notifyUrl == ""){
+            layer.msg("请输入异步回调地址");
+            return;
+        }
+        if (returnUrl == ""){
+            layer.msg("请输入支付完成后跳转地址");
+            return;
+        }
+
+        if (close == ""){
+            layer.msg("请输入创建的订单几分钟后失效");
+            return;
+        }
+        $.post("admin/index/saveSetting","user="+user+"&pass="+pass+"&notifyUrl="+notifyUrl+"&returnUrl="+returnUrl+"&key="+key+"&close="+close+"&payQf="+payQf,function (data) {
+            if (data.code==1){
+                $.post("admin/index/getSettings",function (data) {
+                    console.log(data);
+                    if (data.code==1){
+                        $("#user").val(data.data.user);
+                        $("#pass").val(data.data.pass);
+                        $("#notifyUrl").val(data.data.notifyUrl);
+                        $("#returnUrl").val(data.data.returnUrl);
+                        $("#key").val(data.data.key);
+                        $("#close").val(data.data.close);
+                    }
+                });
+            }
+            layer.msg(data.msg);
+        });
+    }
+
+
+    function getstate(){
+        $.post("admin/index/getSettings",function (data) {
+            console.log(data);
+            if (data.code==1){
+                $("#user").val(data.data.user);
+                $("#pass").val(data.data.pass);
+                $("#notifyUrl").val(data.data.notifyUrl);
+                $("#returnUrl").val(data.data.returnUrl);
+                $("#key").val(data.data.key);
+                $("#close").val(data.data.close);
+                $("#payQf").val(data.data.payQf);
+
+
+                layui.form.render();
+
+
+            }
+        });
+    }
+    getstate();
+</script>
